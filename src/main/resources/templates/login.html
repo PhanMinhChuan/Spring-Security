@@ -6,8 +6,11 @@
 <body>
 	<h2>Spring Boot Security Login with Google+</h2>
 	<a href="https://accounts.google.com/o/oauth2/auth?scope=email&redirect_uri=http://localhost:8080/login-google&response_type=code
-		&client_id=80724656105-fg2ndheoujm7c7dd4ob1i9mq3ebdbjhb.apps.googleusercontent.com&approval_prompt=force">Login With Gmail</a>	
-	
+		&client_id=80724656105-fg2ndheoujm7c7dd4ob1i9mq3ebdbjhb.apps.googleusercontent.com&approval_prompt=force">Login With Gmail</a><br/><br/>
+	<a href="https://www.facebook.com/dialog/oauth?client_id=180439422588509&redirect_uri=https://localhost:8443/login-facebook">Login Facebook</a><br/><br/>
+	<a href="https://www.linkedin.com/oauth/v2/authorization?response_type=code&client_id=81wqf7krhgqevu
+	&redirect_uri=http://localhost:8080/login-linkedin&scope=r_basicprofile">Login With LinkedIn</a><br/>
+
 	<br/>
 	<form name='login-form' th:action="@{/login-handle}" method="post">
 		<table>
