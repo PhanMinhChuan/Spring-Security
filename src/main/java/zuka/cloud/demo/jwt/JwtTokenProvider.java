@@ -1,8 +1,6 @@
 package zuka.cloud.demo.jwt;
 
-import java.io.UnsupportedEncodingException;
 import java.util.Date;
-import java.util.logging.Logger;
 
 import org.springframework.stereotype.Component;
 import io.jsonwebtoken.*;
@@ -13,7 +11,7 @@ import zuka.cloud.demo.model.CustomUserDetails;
 @Slf4j
 public class JwtTokenProvider {
     // Đoạn JWT_SECRET này là bí mật, chỉ có phía server biết
-    private final String JWT_SECRET = "MinhChuan";
+    private final String JWT_SECRET_KEY = "MinhChuan";
 
     //Thời gian có hiệu lực của chuỗi jwt
     private final long JWT_EXPIRATION = 60000;
@@ -28,13 +26,13 @@ public class JwtTokenProvider {
                 .setSubject(Integer.toString(userDetails.getId()))      //"sub"     "sub": "batman"
                 .setIssuedAt(now)                                       //"iss"     "iss": "jira:1314039",
                 .setExpiration(expiryDate)                              //"exp"     "exp": 1300819380,
-                .signWith(SignatureAlgorithm.HS512, JWT_SECRET)
+                .signWith(SignatureAlgorithm.HS512, JWT_SECRET_KEY)
                 .compact();
     }
 
     public Integer getUserIdFromJWT(String token) {
         Claims claims = Jwts.parser()
-                .setSigningKey(JWT_SECRET)
+                .setSigningKey(JWT_SECRET_KEY)
                 .parseClaimsJws(token)
                 .getBody();
 
@@ -43,7 +41,7 @@ public class JwtTokenProvider {
 
     public boolean validateToken(String authToken) {
         try {
-            Jwts.parser().setSigningKey(JWT_SECRET).parseClaimsJws(authToken);
+            Jwts.parser().setSigningKey(JWT_SECRET_KEY).parseClaimsJws(authToken);
             return true;
         } catch (Exception e) {
             System.out.println(e);
