@@ -21,10 +21,13 @@ import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.*;
+import zuka.cloud.demo.common.FacebookUtils;
 import zuka.cloud.demo.common.GoogleUtils;
+import zuka.cloud.demo.common.LinkedInUtils;
 import zuka.cloud.demo.jwt.JwtTokenProvider;
 import zuka.cloud.demo.model.*;
 import zuka.cloud.demo.model.pojos.GooglePojo;
+import zuka.cloud.demo.model.pojos.LinkedInPojo;
 import zuka.cloud.demo.service.UserService;
 
 import javax.servlet.http.HttpServletRequest;
@@ -32,49 +35,9 @@ import javax.servlet.http.HttpServletResponse;
 import javax.servlet.http.HttpSession;
 import javax.validation.Valid;
 import java.io.IOException;
-import java.util.List;
 
 @Controller
-//@RequiredArgsConstructor
-//@Api(value = "User APIs")
 public class UserController {
-
-//    @Autowired
-//    AuthenticationManager authenticationManager;
-//
-//    @Autowired
-//    private JwtTokenProvider tokenProvider;
-//
-//    @PostMapping("/login")
-//    public String authenticateUser(@Valid @RequestBody User user) {
-//        // Xác thực thông tin người dùng Request lên
-//        Authentication authentication = authenticationManager.authenticate(
-//                new UsernamePasswordAuthenticationToken(
-//                        user.getUsername(),
-//                        user.getPassword()
-//                )
-//        );
-//        // Nếu không xảy ra exception tức là thông tin hợp lệ
-//        // Set thông tin authentication vào Security Context
-//        // SecurityContextHolder.getContext().setAuthentication(authentication);
-//
-//        // Trả về jwt cho người dùng.
-//        String jwt = tokenProvider.generateToken((CustomUserDetails) authentication.getPrincipal());
-//        return jwt;
-//        //return new LoginResponse(jwt);
-//    }
-//
-//    @GetMapping("/admin")
-//    @PreAuthorize("hasRole('ADMIN')")
-//    public String admin(){
-//        return "JWT Hợp lệ role ADMIN mới có thể thấy được message này";
-//    }
-//
-//    @GetMapping("/user")
-//    @PreAuthorize("hasAnyRole('ADMIN, USER')")
-//    public String user (){
-//        return "JWT Hợp lệ role USER & role ADMIN mới có thể thấy được message này";
-//    }
 
     @Autowired
     AuthenticationManager authenticationManager;
@@ -84,6 +47,12 @@ public class UserController {
 
     @Autowired
     private GoogleUtils googleUtils;
+
+    @Autowired
+    private FacebookUtils facebookUtils;
+
+    @Autowired
+    private LinkedInUtils linkedInUtils;
 
     @Autowired
     private UserService customUserDetailsService;
@@ -106,7 +75,6 @@ public class UserController {
         UserDetails userDetails = null;
         if (StringUtils.hasText(jwt) && tokenProvider.validateToken(jwt)) {
             int userId = tokenProvider.getUserIdFromJWT(jwt);
-
             userDetails = customUserDetailsService.loadUserById(userId);
             if(userDetails != null) {
                 UsernamePasswordAuthenticationToken authentication =
@@ -120,7 +88,7 @@ public class UserController {
         }
         System.out.println("Token user login:" + jwt);
         Session.setAttribute("name", userDetails.getUsername());
-        return "/user";
+        return "redirect:/user";
     }
 
     @RequestMapping("/login-google")
@@ -139,18 +107,49 @@ public class UserController {
         authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
         SecurityContextHolder.getContext().setAuthentication(authentication);
         Session.setAttribute("name", googlePojo.getEmail());
-        //return "redirect:/user";
-        return "/user";
+        return "redirect:/user";
+    }
+
+    @RequestMapping("/login-facebook")
+    public String loginFacebook(HttpServletRequest request) throws ClientProtocolException, IOException {
+        String code = request.getParameter("code");
+        if (code == null || code.isEmpty()) {
+            return "redirect:/login?facebook=error";
+        }
+
+        String accessToken = facebookUtils.getToken(code);
+        com.restfb.types.User user = facebookUtils.getUserInfo(accessToken);
+        UserDetails userDetail = facebookUtils.buildUser(user);
+        UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(userDetail, null,
+                userDetail.getAuthorities());
+        authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
+        SecurityContextHolder.getContext().setAuthentication(authentication);
+        return "redirect:/user";
+    }
+
+    @RequestMapping("/login-linkedin")
+    public String loginLinkedIn(HttpServletRequest request) throws ClientProtocolException, IOException {
+        String code = request.getParameter("code");
+        if (code == null || code.isEmpty()) {
+            return "redirect:/login?message=linkedin_error";
+        }
+
+        String accessToken = linkedInUtils.getToken(code);
+        LinkedInPojo linkedInPojo = linkedInUtils.getUserInfo(accessToken);
+        UserDetails userDetail = linkedInUtils.buildUser(linkedInPojo);
+        UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(userDetail, null,
+                userDetail.getAuthorities());
+        authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
+        SecurityContextHolder.getContext().setAuthentication(authentication);
+        return "redirect:/user";
     }
 
     @RequestMapping("/user")
-    //@PreAuthorize("hasAnyRole('ADMIN, USER')")
     public String user() {
         return "user";
     }
 
     @RequestMapping("/admin")
-    //@PreAuthorize("hasRole('ADMIN')")
     public String admin() {
         return "admin";
     }
