@@ -15,6 +15,7 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
 import org.springframework.security.web.authentication.logout.SecurityContextLogoutHandler;
 import org.springframework.stereotype.Controller;
@@ -24,11 +25,13 @@ import org.springframework.web.bind.annotation.*;
 import zuka.cloud.demo.common.FacebookUtils;
 import zuka.cloud.demo.common.GoogleUtils;
 import zuka.cloud.demo.common.LinkedInUtils;
+import zuka.cloud.demo.config.CustomUserDetailsService;
 import zuka.cloud.demo.jwt.JwtTokenProvider;
 import zuka.cloud.demo.model.*;
 import zuka.cloud.demo.model.pojos.GooglePojo;
 import zuka.cloud.demo.model.pojos.LinkedInPojo;
-import zuka.cloud.demo.service.UserService;
+import zuka.cloud.demo.repository.RoleRepository;
+import zuka.cloud.demo.repository.UserRepository;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
@@ -55,7 +58,19 @@ public class UserController {
     private LinkedInUtils linkedInUtils;
 
     @Autowired
-    private UserService customUserDetailsService;
+    private CustomUserDetailsService customUserDetailsService;
+
+    @Autowired
+    UserRepository userRepository;
+
+    @Autowired
+    UserRepository repository;
+
+    @Autowired
+    RoleRepository roleRepository;
+
+    @Autowired
+    PasswordEncoder passwordEncoder;
 
     @RequestMapping(value = { "/", "/login" })
     public String login() {
@@ -71,11 +86,11 @@ public class UserController {
                         request.getParameter("password")
                 )
         );
-        String jwt = tokenProvider.generateToken((CustomUserDetails) auth.getPrincipal());
+        String jwt = tokenProvider.generateToken((org.springframework.security.core.userdetails.User) auth.getPrincipal());
         UserDetails userDetails = null;
         if (StringUtils.hasText(jwt) && tokenProvider.validateToken(jwt)) {
-            int userId = tokenProvider.getUserIdFromJWT(jwt);
-            userDetails = customUserDetailsService.loadUserById(userId);
+            String username = tokenProvider.getUsernameFromJWT(jwt);
+            userDetails = customUserDetailsService.loadUserByUsername(username);
             if(userDetails != null) {
                 UsernamePasswordAuthenticationToken authentication =
                         new UsernamePasswordAuthenticationToken(userDetails, null, userDetails.getAuthorities());
@@ -87,6 +102,19 @@ public class UserController {
             return "redirect:/login?google=error";
         }
         System.out.println("Token user login:" + jwt);
+        //create User test jpa auditing
+        User user = new User();
+        user.setId(2);
+        user.setUsername("user");
+        user.setPassword(passwordEncoder.encode("123"));
+        userRepository.save(user);
+        Role role = new Role();
+        role.setId(2);
+        role.setName("ROLE_USER");
+        role.setUsername(user.getUsername());
+        role.setUserId(user.getId());
+        roleRepository.save(role);
+
         Session.setAttribute("name", userDetails.getUsername());
         return "redirect:/user";
     }
