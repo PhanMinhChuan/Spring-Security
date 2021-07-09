@@ -37,7 +37,7 @@ public class JwtValidatorController {
 
             int idUser =  Integer.parseInt(claims.getSubject());
             User userJwt = userRepository.findById(idUser);
-            return "UserId: " + idUser + ", UserRole:" + userJwt.getRole();
+            return "UserId: " + idUser + ", UserRole:";
         } catch (MalformedJwtException ex) {
             System.out.println("Invalid JWT token");
         } catch (ExpiredJwtException ex) {
